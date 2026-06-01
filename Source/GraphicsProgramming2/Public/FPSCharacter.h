@@ -8,6 +8,7 @@
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
 #include "Projectile/FPSProjectile.h"
+#include "Components/GravityGunComponent.h"
 #include "FPSCharacter.generated.h"
 
 class UInputMappingContext;
@@ -49,12 +50,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* FireAction;
 
-	UPROPERTY(EditAnywhere, Category = "Gravity Gun")
-	float GrabDistance = 200.0f;
+	//UPROPERTY(EditAnywhere, Category = "Gravity Gun")
+	//float GrabDistance = 200.0f;
 
 	// GRAVITY GUN - Keeping track of the currently grabbed object, if there is one. This will be set to nullptr when there is no object currently grabbed, ensuring we manage our memory proper.
-	UPROPERTY()
-	UPrimitiveComponent* GrabbedObject;
+	//UPROPERTY()
+	//UPrimitiveComponent* GrabbedObject;
 
 	UPROPERTY(VisibleAnywhere)
 	UCameraComponent* FPSCameraComponent;
@@ -71,14 +72,17 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Projectile")
 	TSubclassOf<class AFPSProjectile> ProjectileClass;
 
-	UPROPERTY(EditAnywhere, Category = "Gravity Gun")
-	float GrabStiffness = 15.0f;
+	//UPROPERTY(EditAnywhere, Category = "Gravity Gun")
+	//float GrabStiffness = 15.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Gravity Gun")
-	float ThrowImpulse = 2500.0f;
+	//UPROPERTY(EditAnywhere, Category = "Gravity Gun")
+	//float ThrowImpulse = 2500.0f;
 
-	UPROPERTY(Editanywhere, Category = "Gravity Gun")
-	float MaxGrabMass = 200.0f;
+	//UPROPERTY(Editanywhere, Category = "Gravity Gun")
+	//float MaxGrabMass = 200.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gravity Gun")
+	UGravityGunComponent* GravityGunComponent;
 
 	UFUNCTION()
 	void Move(const FInputActionValue& Value);
@@ -107,9 +111,8 @@ public:
 
 	void EndFire();
 
-	UFUNCTION()
-
-	void SetGrabbedObject(UPrimitiveComponent* ObjectToGrab);
+	//UFUNCTION()
+	//void SetGrabbedObject(UPrimitiveComponent* ObjectToGrab);
 
 	UFUNCTION()
 	void OnHurtPlayer(float DamageAmount);

@@ -6,7 +6,7 @@
 //#include "Kismet/GameplayStatistics.h"
 
 
-// Sets default values
+// Sets default values. THIS IS OUR CONSTRUCTOR!
 AFPSCharacter::AFPSCharacter()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
@@ -37,6 +37,11 @@ AFPSCharacter::AFPSCharacter()
 		FPSMeshComponent->SetOnlyOwnerSee(true);
 	}
 
+	if (!GravityGunComponent)
+	{
+		GravityGunComponent = CreateDefaultSubobject<UGravityGunComponent>(TEXT("GravityGunComponent"));
+	}
+
 	GetMesh()->SetOwnerNoSee(true); // Similar to setting the "Culling Mask" of a camera in Unity, but with more options for how the visibility is set
 
 	UE_LOG(LogTemp, Warning, TEXT("FPSCharacter Constructor Called"));
@@ -65,18 +70,7 @@ void AFPSCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (GrabbedObject && FPSCameraComponent)
-	{
-		FVector TargetLocation = FPSCameraComponent->GetComponentLocation() + FPSCameraComponent->GetForwardVector() * GrabDistance;
-
-		FVector CurrentLocation = GrabbedObject->GetComponentLocation();
-		FVector Displacement = TargetLocation - CurrentLocation;
-
-		FVector DesiredVelocity = Displacement * GrabStiffness;
-		GrabbedObject->SetPhysicsLinearVelocity(DesiredVelocity);
-		GrabbedObject->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
-	}
-
+	GravityGunComponent->TickHold(FPSCameraComponent);
 }
 
 // Called to bind functionality to input
@@ -124,38 +118,16 @@ void AFPSCharacter::EndJump()
 
 void AFPSCharacter::Fire()
 {
-	if (GrabbedObject) return;
+	GravityGunComponent->TryGrab(FPSCameraComponent);
+
+	if (GravityGunComponent->IsHoldingObject()) return;
 
 	// Init relevant infomration for where the projectile will be
-
 	FVector CameraLocation;
 	FRotator CameraRotation;
 	GetActorEyesViewPoint(CameraLocation, CameraRotation);
 
-	const float TraceRange = 5000.0f;
-	const FVector StartTrace = CameraLocation;
-	const FVector EndTrace = CameraLocation + (CameraRotation.Vector() * TraceRange);
-
-	const FCollisionQueryParams QueryParams("Gravity Gun Trace", false, this);
-	FHitResult HitResult;
-
-	if (GetWorld()->LineTraceSingleByChannel(HitResult, StartTrace, EndTrace, ECC_Visibility, QueryParams))
-	{
-		if (UPrimitiveComponent* HitComp = HitResult.GetComponent())
-		{
-			if (HitComp->IsSimulatingPhysics())
-			{
-				if (HitComp->GetMass() <= MaxGrabMass)
-				{
-					SetGrabbedObject(HitComp);
-					return;
-				}
-			}
-		}
-	}
-
 	if (!ProjectileClass) return;
-
 	MuzzleOffset.Set(100.0f, 0.0f, 0.0f);
 	FVector MuzzleLocation = CameraLocation + FTransform(CameraRotation).TransformVector(MuzzleOffset);
 
@@ -195,35 +167,23 @@ void AFPSCharacter::Fire()
 // GRAVITY GUN - End Fire Function for Throwing Objects after the Fire input for Picking Up Objects has Finished.
 void AFPSCharacter::EndFire()
 {
-	if(GrabbedObject)
-	{
-		GrabbedObject->SetEnableGravity(true);
-		GrabbedObject->SetLinearDamping(0.01f);
-		
-		const FVector ThrowDirection = FPSCameraComponent->GetForwardVector();
-
-		GrabbedObject->SetPhysicsLinearVelocity(FVector::ZeroVector);
-
-		GrabbedObject->AddImpulse(ThrowDirection * ThrowImpulse, NAME_None, false);
-
-		SetGrabbedObject(nullptr);
-	}
+	GravityGunComponent->ThrowOrRelease();
 }
 
 
 // GRAVITY GUN - Function for Attaching fired objects to a point in front of the Player. This is called in the Fire function after we have determined that we have hit an object that can be picked up, and we want to attach it to the GrabbedObjectLocation so that it follows the player around until we release it.
-void AFPSCharacter::SetGrabbedObject(UPrimitiveComponent* ObjectToGrab)
-{
-	GrabbedObject = ObjectToGrab;
-
-	if (GrabbedObject)
-	{
-		if (!GrabbedObject->IsSimulatingPhysics()) return;
-		GrabbedObject->SetEnableGravity(false);
-
-		GrabbedObject->SetLinearDamping(5.0f);
-	}
-}
+//void AFPSCharacter::SetGrabbedObject(UPrimitiveComponent* ObjectToGrab)
+//{
+//	GrabbedObject = ObjectToGrab;
+//
+//	if (GrabbedObject)
+//	{
+//		if (!GrabbedObject->IsSimulatingPhysics()) return;
+//		GrabbedObject->SetEnableGravity(false);
+//
+//		GrabbedObject->SetLinearDamping(5.0f);
+//	}
+//}
 
 void AFPSCharacter::OnHurtPlayer(float DamageAmount)
 {
