@@ -46,3 +46,8 @@ void AGravityGunGameMode::StartPlay()
 	//UE_LOGFMT(LogTemp, Warning, "TestNumber: {0}, TestBool: {1}, TestString: {2}", TestNumber, TestBool, *TestString, "This is my String ya gabbagool");
 
 }
+
+void AGravityGunGameMode::AddScore(int32 Points)
+{
+	CurrentScore += Points;
+}

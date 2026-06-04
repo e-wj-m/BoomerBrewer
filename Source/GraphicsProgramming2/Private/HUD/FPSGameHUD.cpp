@@ -3,6 +3,7 @@
 
 #include "HUD/FPSGameHUD.h"
 #include "GUI/GameEndWidget.h"
+#include "GravityGunGameMode.h"
 #include "Widgets/SWeakWidget.h"
 
 void AFPSGameHUD::BeginPlay()
@@ -110,6 +111,11 @@ void AFPSGameHUD::SpawnGameMenuWidget()
 	GameMenuWidgetContainer->AddToViewport();
 
 	GameMenuWidgetContainer->UpdateTimer(StartingTime);
+
+	if (AGravityGunGameMode* GM = Cast<AGravityGunGameMode>(GetWorld()->GetAuthGameMode()))
+	{
+		GM->SetGameMenuWidget(GameMenuWidgetContainer);
+	}
 
 	PlayerOwner->bShowMouseCursor = false;
 	PlayerOwner->SetInputMode(FInputModeGameOnly());

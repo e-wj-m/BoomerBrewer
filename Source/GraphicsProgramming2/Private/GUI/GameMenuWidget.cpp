@@ -42,7 +42,7 @@ void UGameMenuWidget::UpdateTimer(int Time)
 	TimerText->SetText(FText::FromString(TimerString));
 }
 
-void UGameMenuWidget::OnPauseClicked()
-{
-	//Leaving empty for now in case I decide to add a pause later
-}	
+//void UGameMenuWidget::OnPauseClicked()
+//{
+//	//Leaving empty for now in case I decide to add a pause later
+//}	

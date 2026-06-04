@@ -30,8 +30,8 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* TimerText;
 
-	UPROPERTY(meta = (BindWidget))
-	UButton* PauseButton;
+	//UPROPERTY(meta = (BindWidget))
+	//UButton* PauseButton;
 
 	UFUNCTION()
 	void UpdatePatienceBar(float PatiencePercent);
@@ -42,7 +42,7 @@ public:
 	UFUNCTION()
 	void UpdateTimer(int Time);
 
-	UFUNCTION()
-	void OnPauseClicked();
+	//UFUNCTION()
+	//void OnPauseClicked();
 
 };
