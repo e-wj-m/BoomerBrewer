@@ -53,5 +53,7 @@ private:
 
 	FTimerHandle CountdownTimerHandle;
 
+	bool bGameEnded = false;
+
 	void CountdownTick();
 };

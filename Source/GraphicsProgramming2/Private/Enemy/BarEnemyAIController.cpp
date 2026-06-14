@@ -2,6 +2,7 @@
 
 
 #include "Enemy/BarEnemyAIController.h"
+#include "Kismet/GameplayStatics.h"
 
 ABarEnemyAIController::ABarEnemyAIController()
 {
@@ -26,6 +27,17 @@ void ABarEnemyAIController::OnSeePawn(APawn* PlayerPawn)
 	AFPSCharacter* PlayerCharacter = Cast<AFPSCharacter>(PlayerPawn);
 	
 	if (!PlayerCharacter) return;
+
+	UBlackboardComponent* BlackboardComp = GetBlackboardComponent();
+	const bool bWasSeeing = BlackboardComp && BlackboardComp->GetValueAsBool("CanSeePlayer");
+
+	if (!bWasSeeing && SpottedPlayerSound)
+	{
+		if (APawn* MyPawn = GetPawn())
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, SpottedPlayerSound, MyPawn->GetActorLocation());
+		}
+	}
 
 	SetCanSeePlayer(true, PlayerCharacter);
 

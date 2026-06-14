@@ -50,6 +50,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* FireAction;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* PullAction;
+
 	//UPROPERTY(EditAnywhere, Category = "Gravity Gun")
 	//float GrabDistance = 200.0f;
 
@@ -108,17 +111,35 @@ public:
 	void Fire();
 
 	UFUNCTION()
+	void StartPull();
 
-	void EndFire();
+	UFUNCTION()
+	void Pull();
 
-	//UFUNCTION()
-	//void SetGrabbedObject(UPrimitiveComponent* ObjectToGrab);
+	UFUNCTION()
+	void EndPull();
 
 	UFUNCTION()
 	void OnHurtPlayer(float DamageAmount);
 
+	UFUNCTION()
+	void OnPlayerHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
+	//UFUNCTION()
+	//void EndFire();
+
+	//UFUNCTION()
+	//void SetGrabbedObject(UPrimitiveComponent* ObjectToGrab);
+
 private:
 	float Health = 100.0f;
 	float MaxHealth = 100.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float DamagePerHit = 10.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float DamageCooldown = 1.0f;
+	float LastDamageTime = -1.0f;
 
 };

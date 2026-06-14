@@ -29,6 +29,9 @@ protected:
 	UPROPERTY(EditAnywhere)
 	UPawnSensingComponent* PawnSensing;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Audio")
+	class USoundBase* SpottedPlayerSound = nullptr;
+
 	UFUNCTION()
 	void OnSeePawn(APawn* PlayerPawn);
 

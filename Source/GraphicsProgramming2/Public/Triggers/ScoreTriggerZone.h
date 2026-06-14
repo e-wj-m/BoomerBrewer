@@ -22,6 +22,8 @@ protected:
     int32 PointsPerObject = 1;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scoring")
+
+    //Swap out tags for using the can itself as an AC - DO THIS NEXT UPDATE
     FName RequiredObjectTag = "Pickup";
 
     UFUNCTION()

@@ -32,7 +32,11 @@ public:
 
 private:
     int32 CurrentScore = 0;
+    bool bGameOver = false;
 
     UPROPERTY()
     UGameMenuWidget* GameMenuWidget = nullptr;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scoring", meta = (AllowPrivateAccess = "true"))
+    int32 ScoreToWin = 10;
 };

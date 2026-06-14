@@ -47,7 +47,7 @@ void AScoreTriggerZone::OnTriggerBeginOverlap(
         }
     }
 
-    OtherActor->Destroy();
+    /*OtherActor->Destroy();*/
 }
 
 void AScoreTriggerZone::PushScoreToWidget(int32 NewScore)

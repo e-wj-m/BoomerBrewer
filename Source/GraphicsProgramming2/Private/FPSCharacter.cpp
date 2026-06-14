@@ -3,6 +3,9 @@
 #include "FPSCharacter.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "GravityGunGameMode.h"
+#include "GUI/GameMenuWidget.h"
+#include "HUD/FPSGameHUD.h"
 //#include "Kismet/GameplayStatistics.h"
 
 
@@ -51,6 +54,8 @@ AFPSCharacter::AFPSCharacter()
 void AFPSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	GetCapsuleComponent()->OnComponentHit.AddDynamic(this, &AFPSCharacter::OnPlayerHit);
 	
 	if(APlayerController* PlayerController = Cast<APlayerController>(GetController()))
 	{
@@ -86,8 +91,12 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 			EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AFPSCharacter::Look);
 			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AFPSCharacter::StartJump);
 			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &AFPSCharacter::EndJump);
+			EnhancedInputComponent->BindAction(PullAction, ETriggerEvent::Started, this, &AFPSCharacter::StartPull);
+			EnhancedInputComponent->BindAction(PullAction, ETriggerEvent::Triggered, this, &AFPSCharacter::Pull);
+			EnhancedInputComponent->BindAction(PullAction, ETriggerEvent::Completed, this, &AFPSCharacter::EndPull);
 			EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &AFPSCharacter::Fire);
-			EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &AFPSCharacter::EndFire);
+			/*EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &AFPSCharacter::EndFire);*/
+			/*EnhancedInputComponent->BindAction(PullAction, ETriggerEvent::Triggered, this, &AFPSCharacter::EndPull);*/
 		}
 	}
 }
@@ -118,7 +127,7 @@ void AFPSCharacter::EndJump()
 
 void AFPSCharacter::Fire()
 {
-	GravityGunComponent->TryGrab(FPSCameraComponent);
+	GravityGunComponent->Fire(FPSCameraComponent);
 
 	if (GravityGunComponent->IsHoldingObject()) return;
 
@@ -164,11 +173,65 @@ void AFPSCharacter::Fire()
 	//}
 }
 
-// GRAVITY GUN - End Fire Function for Throwing Objects after the Fire input for Picking Up Objects has Finished.
-void AFPSCharacter::EndFire()
+void AFPSCharacter::StartPull()
 {
-	GravityGunComponent->ThrowOrRelease();
+	GravityGunComponent->OnPullPressed();
 }
+
+void AFPSCharacter::Pull()
+{
+	GravityGunComponent->Pull(FPSCameraComponent);
+}
+
+void AFPSCharacter::EndPull()
+{
+	GravityGunComponent->OnPullReleased();
+}
+
+
+
+void AFPSCharacter::OnPlayerHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	if (!OtherActor || OtherActor == this) return;
+	if (!OtherActor->ActorHasTag("Enemy")) return;
+
+	const float Now = GetWorld()->GetTimeSeconds();
+
+	if (Now - LastDamageTime < DamageCooldown) return;
+	LastDamageTime = Now;
+
+	OnHurtPlayer(DamagePerHit);
+}
+
+void AFPSCharacter::OnHurtPlayer(float DamageAmount)
+{
+	Health = FMath::Clamp(Health - DamageAmount, 0.0f, MaxHealth);
+
+	if (AGravityGunGameMode* GM = Cast<AGravityGunGameMode>(GetWorld()->GetAuthGameMode()))
+	{
+		if (UGameMenuWidget* Menu = GM->GetGameMenuWidget())
+		{
+			Menu->UpdatePatienceBar(Health / MaxHealth);
+		}
+	}
+
+	if (Health <= 0.0f)
+	{
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			if (AFPSGameHUD* HUD = Cast<AFPSGameHUD>(PC->GetHUD()))
+			{
+				HUD->ShowGameEndScreen(false);
+			}
+		}
+	}
+}
+
+// GRAVITY GUN - End Fire Function for Throwing Objects after the Fire input for Picking Up Objects has Finished.
+//void AFPSCharacter::EndFire()
+//{
+//	GravityGunComponent->ThrowOrRelease();
+//}
 
 
 // GRAVITY GUN - Function for Attaching fired objects to a point in front of the Player. This is called in the Fire function after we have determined that we have hit an object that can be picked up, and we want to attach it to the GrabbedObjectLocation so that it follows the player around until we release it.
@@ -185,9 +248,9 @@ void AFPSCharacter::EndFire()
 //	}
 //}
 
-void AFPSCharacter::OnHurtPlayer(float DamageAmount)
-{
-
-}
 
 
+//void AFPSCharacter::EndPull()
+//{
+//
+//}

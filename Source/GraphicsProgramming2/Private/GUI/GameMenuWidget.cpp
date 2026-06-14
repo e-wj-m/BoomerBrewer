@@ -28,7 +28,7 @@ void UGameMenuWidget::UpdateScore(int32 Score)
 	{
 		return;
 	}
-	FString ScoreString = FString::Printf(TEXT("Score:%d"), Score);
+	FString ScoreString = FString::Printf(TEXT("Score: %d"), Score);
 	ScoreText->SetText(FText::FromString(ScoreString));
 }
 

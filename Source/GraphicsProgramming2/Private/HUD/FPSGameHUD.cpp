@@ -42,6 +42,19 @@ void AFPSGameHUD::CountdownTick()
 
 void AFPSGameHUD::ShowGameEndScreen(bool bPlayerWon)
 {
+	if (bGameEnded) return;
+	bGameEnded = true;
+
+	GetWorldTimerManager().ClearTimer(CountdownTimerHandle);
+
+	if (PlayerOwner)
+	{
+		if (APawn* PlayerPawn = PlayerOwner->GetPawn())
+		{
+			PlayerPawn->DisableInput(PlayerOwner);
+		}
+	}
+
 	if (GameMenuWidgetContainer)
 	{
 		GameMenuWidgetContainer->RemoveFromParent();

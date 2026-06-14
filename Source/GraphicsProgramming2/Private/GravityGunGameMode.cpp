@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "GravityGunGameMode.h"
+#include "HUD/FPSGameHUD.h"
+#include "Kismet/GameplayStatics.h"
 #include "Logging/StructuredLog.h"
 
 void AGravityGunGameMode::StartPlay()
@@ -49,5 +51,20 @@ void AGravityGunGameMode::StartPlay()
 
 void AGravityGunGameMode::AddScore(int32 Points)
 {
+	if (bGameOver) return;
+
 	CurrentScore += Points;
+
+	if (CurrentScore >= ScoreToWin)
+	{
+		bGameOver = true;
+
+		if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+		{
+			if (AFPSGameHUD* HUD = Cast<AFPSGameHUD>(PC->GetHUD()))
+			{
+				HUD->ShowGameEndScreen(true);
+			}
+		}
+	}
 }
