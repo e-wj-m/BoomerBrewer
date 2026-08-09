@@ -19,7 +19,7 @@ void UMainMenuWidget::NativeConstruct()
 
 void UMainMenuWidget::OnStartGameClicked()
 {
-    UGameplayStatics::OpenLevel(this, FName("BarLevel"));
+    UGameplayStatics::OpenLevel(this, FName("/Game/Scenes/BarLevel"));
 }
 
 void UMainMenuWidget::OnExitGameClicked()

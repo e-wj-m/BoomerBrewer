@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Enemy/BarEnemyCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "AIController.h"
@@ -12,7 +11,7 @@
 // Sets default values
 ABarEnemyCharacter::ABarEnemyCharacter()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 }
 
@@ -32,13 +31,14 @@ void ABarEnemyCharacter::Tick(float DeltaTime)
 void ABarEnemyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
 }
 
 void ABarEnemyCharacter::KnockDown_Implementation(const FVector& Impulse)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Knockdown Called On %s with Impulse %s"),
-		* GetName(), * Impulse.ToString());
+		*GetName(), *Impulse.ToString());
+
+	bIsKnockedDown = true;
 
 	if (AAIController* AICon = Cast<AAIController>(GetController()))
 	{
@@ -50,7 +50,6 @@ void ABarEnemyCharacter::KnockDown_Implementation(const FVector& Impulse)
 
 	GetCharacterMovement()->StopMovementImmediately();
 	GetCharacterMovement()->DisableMovement();
-
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);

@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Knockbackable Component (Public). Setup for linking to the BarEnemyCharacter to allow for ragdolling when Punched by the gravity gun. -E.M
 
 #pragma once
 

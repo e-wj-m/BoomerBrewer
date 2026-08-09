@@ -1,3 +1,5 @@
+//ScoreTriggerZone (Private). Handles the Trigger for scoring with Cans. -E.M
+
 #include "Triggers/ScoreTriggerZone.h"
 #include "Components/BoxComponent.h"
 #include "Blueprint/UserWidget.h"

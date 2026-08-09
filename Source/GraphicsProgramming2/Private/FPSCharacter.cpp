@@ -154,12 +154,6 @@ void AFPSCharacter::Fire()
 
 	FRotator MuzzleRotation = CameraRotation;
 
-	// GRAVITY GUN - Try to play a sound when the Gravity Gun is fired.
-	/*if (FireSound != NULL)
-	{
-		UGameplayStatistics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
-	}*/
-
 	// GRAVITY GUN - Try to play an Animation for the firing action.
 	//if (FireAnimation != NULL)
 	//{

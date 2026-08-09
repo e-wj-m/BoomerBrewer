@@ -14,7 +14,7 @@ void AGravityGunGameMode::StartPlay()
 	// 1. Print to Screen
 	// Display a debug message for five seconds. Its color is red.
 	// The -1 "Key" value argument prevents the message from being updated or refreshed.
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Hello, world! This is GravityGunGameMode! A game that will be developed for both Graphics Programming 2 and Project 2 of Physics for Game Programmers!"));
+	// GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Hello, world! This is GravityGunGameMode! A game that will be developed for both Graphics Programming 2 and Project 2 of Physics for Game Programmers!"));
 
 	// 2. Print to Log
 	UE_LOG(LogTemp, Warning, TEXT("Hello, world!"));

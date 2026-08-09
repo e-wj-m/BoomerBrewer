@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// GravityGunComponent (Public). This component of the Gravity Gun handles specific values such as the Max Grab Mass, Trace Range, Impulse strength etc. Also handles Camera linking for where the trace/hold points should live. -E.M
 
 #pragma once
 

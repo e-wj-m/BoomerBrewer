@@ -39,3 +39,5 @@ protected:
 private:
     void PushScoreToWidget(int32 NewScore);
 };
+
+// ScoreTriggerZone (Public). Handles the tag checking for what Actors are allowed to increment the score counter. -E.M

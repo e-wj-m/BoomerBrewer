@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// GravityGunComponent (Private). This is the meat of the Gravity Gun's Logic, handling the Pull, Fire, and Punch logic the Player can utilize. Links to the Character's IA's. -E.M
 
 
 #include "Components/GravityGunComponent.h"
@@ -10,9 +10,11 @@
 // Sets default values for this component's properties
 UGravityGunComponent::UGravityGunComponent()
 {
+	// Ticking is disabled at the component level. Per-frame work (TickHold) is driven externally by the owning actor/pawn, which keeps this component passive and avoids paying tick cost while the gun is Idle.
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
+// Casts a ray straight out from the camera and returns the first physics-simulating primitive it hits within TraceRange. Returns nullptr if nothing valid is found. Only components with IsSimulatingPhysics() == true are grabbable.
 UPrimitiveComponent* UGravityGunComponent::TraceForPhysicsObject(UCameraComponent* Camera, FHitResult& OutHit) const
 {
 	if (!Camera || !GetWorld()) return nullptr;
@@ -34,6 +36,7 @@ UPrimitiveComponent* UGravityGunComponent::TraceForPhysicsObject(UCameraComponen
 	return nullptr;
 }
 
+// Handles the "pull" input being pressed. While Holding, this acts as a drop: it restores the object's physics, plays the drop SFX, and returns to Idle.
 void UGravityGunComponent::OnPullPressed()
 {
 	if (CurrentState == EGravityGunState::Holding)
@@ -51,15 +54,27 @@ void UGravityGunComponent::OnPullPressed()
 	}
 }
 
+// Handles the "pull" input being released. Clears the latch so the next press is allowed to start a fresh pull. 
 void UGravityGunComponent::OnPullReleased()
 {
 	bPullConsumed = false;
 }
 
+// Core state machine for grabbing and reeling in an object.
+
+// Idle = trace for a target; if found and under MaxGrabMass, disable its gravity and begin Pulling.          
+// Pulling = each call, drive the object toward the hold point. Once it's within PullCatchDistance it transitions to Holding; otherwise it keeps applying a constant-speed velocity toward the hold point.          
+// Holding = TickHold() maintains the held position.
+
+// Physics notes:
+//  - Gravity is disabled the moment an object is grabbed so it doesn't fight the pull velocity / fall mid-reel.   
+//  - Velocity is set directly (SetPhysicsLinearVelocity) rather than via impulse, giving a consistent reel-in speed independent of the object's mass.  
+//  - Angular velocity is zeroed every step so the object doesn't tumble while being pulled, which keeps the motion readable.
 void UGravityGunComponent::Pull(UCameraComponent* Camera)
 {
 	if (!Camera) return;
 
+	// Latch gate: ignore Pull while the press that just dropped an object is still held.
 	if (bPullConsumed) return;
 
 	switch (CurrentState)
@@ -69,6 +84,7 @@ void UGravityGunComponent::Pull(UCameraComponent* Camera)
 		FHitResult Hit;
 		UPrimitiveComponent* HitComp = TraceForPhysicsObject(Camera, Hit);
 
+		// Mass gate: only objects at or below MaxGrabMass can be picked up, so the gun can't yank heavy world geometry around (set at 200kg as a default, can be changed in public file).
 		if (HitComp && HitComp->GetMass() <= MaxGrabMass)
 		{
 			GrabbedObject = HitComp;
@@ -84,18 +100,21 @@ void UGravityGunComponent::Pull(UCameraComponent* Camera)
 	}
 	case EGravityGunState::Pulling:
 	{
+		// Safety: object may have been destroyed mid-pull; bail back to Idle.
 		if (!GrabbedObject)
 		{
 			CurrentState = EGravityGunState::Idle;
 			break;
 		}
 
+		// Hold point sits a fixed GrabDistance in front of the camera. Measure how far the object still is from that point each call.
 		const FVector HoldPoint = Camera->GetComponentLocation() + Camera->GetForwardVector() * GrabDistance;
 		const FVector ToHold = HoldPoint - GrabbedObject->GetComponentLocation();
 		const float Distance = ToHold.Size();
 
 		if (Distance <= PullCatchDistance)
 		{
+			// Close enough to "catch" — hand off to the Holding state.
 			SetGrabbedObject(GrabbedObject);
 			CurrentState = EGravityGunState::Holding;
 
@@ -107,6 +126,7 @@ void UGravityGunComponent::Pull(UCameraComponent* Camera)
 
 		else
 		{
+			// Still reeling in: push the object toward the hold point at a fixed speed. GetSafeNormal() gives pure direction so PullSpeed controls magnitude alone.
 			const FVector PullVelocity = ToHold.GetSafeNormal() * PullSpeed;
 			GrabbedObject->SetPhysicsLinearVelocity(PullVelocity);
 			GrabbedObject->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
@@ -119,6 +139,16 @@ void UGravityGunComponent::Pull(UCameraComponent* Camera)
 	}
 }
 
+// Handles the "fire" input. Two distinct behaviours depending on state:
+
+// If currently Holding an object, THROW it: clear hold state, restore gravity and normal damping, then apply a forward impulse scaled by ThrowImpulse.  
+// Linear velocity is zeroed first so the throw impulse is the only force acting, making throw strength predictable regardless of the object's prior motion.  
+
+// If NOT holding, PUNCH it: trace forward and either knock down a Knockbackable actor (via the interface) or apply a one-off impulse to a loose physics object.
+
+// Physics notes:
+//  - AddImpulse with bVelChange=false means the impulse is mass-scaled (heavier objects move less for the same impulse) — realistic throw/punch feel.
+//  - Damping is reset to 0.01 on throw because the held object was given high damping (5.0 in SetGrabbedObject) to keep it steady; that high damping must be cleared or the thrown object would decelerate unnaturally fast.
 void UGravityGunComponent::Fire(UCameraComponent* Camera)
 {
 	if (!Camera) return;
@@ -141,6 +171,7 @@ void UGravityGunComponent::Fire(UCameraComponent* Camera)
 		return;
 	}
 
+	// Punch path: nothing held, so do a forward trace to punch that shizzle homeslice. Now whip it. Whip it good.
 	FHitResult Hit;
 	const FVector Start = Camera->GetComponentLocation();
 	const FVector End = Start + Camera->GetForwardVector() * TraceRange;
@@ -153,12 +184,14 @@ void UGravityGunComponent::Fire(UCameraComponent* Camera)
 			HitActor ? *HitActor->GetName() : TEXT("null"),
 			Hit.GetComponent() ? *Hit.GetComponent()->GetName() : TEXT("null"));
 
+		// Prefer the gameplay interface: if the actor knows how to be knocked down, let it handle the reaction (ragdoll on enemies) via Execute_KnockDown.
 		if (HitActor && HitActor->Implements<UKnockbackable>())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Hit actor implements Knockbackable!"));
 			IKnockbackable::Execute_KnockDown(HitActor, Camera->GetForwardVector() * PunchImpulse);
 		}
 
+		// Fallback: a plain physics object just gets a mass-scaled impulse.
 		else if (UPrimitiveComponent* HitComp = Hit.GetComponent())
 		{
 			if (HitComp->IsSimulatingPhysics())
@@ -174,6 +207,12 @@ void UGravityGunComponent::Fire(UCameraComponent* Camera)
 	}
 }
 
+// Per-frame maintenance of a held object's position. Called externally while Holding. Rather than teleporting the object (which breaks collision), it computes the gap between the object and the target hold point and converts that gap into a velocity.
+
+// Physics notes:
+//  - Displacement * GrabStiffness is a proportional ("spring-like") controller: the further the object is from where it should be, the faster it moves to catch up. GrabStiffness tunes how snappy vs. floaty the hold feels. 
+//  - Because it sets velocity rather than position, the object still collides with the world correctly and won't tunnel through walls while being carried.
+//  - Angular velocity is zeroed so the held object stays visually stable.
 void UGravityGunComponent::TickHold(UCameraComponent* Camera)
 {
 	if (CurrentState != EGravityGunState::Holding || !GrabbedObject || !Camera) return;
@@ -186,6 +225,10 @@ void UGravityGunComponent::TickHold(UCameraComponent* Camera)
 	GrabbedObject->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
 }
 
+// Sets (or clears) the currently grabbed object and applies the "carry" physics state.
+
+// When grabbing: gravity is disabled and high linear damping (5.0) is applied so the object settles quickly and doesn't oscillate/drift around the hold point.
+// When clearing (nullptr): nothing is restored here on purpose — the caller that releases the object (OnPullPressed/Fire via ReleaseObjectPhysics) owns restoring gravity and damping, so defaults aren't double-applied.
 void UGravityGunComponent::SetGrabbedObject(UPrimitiveComponent* ObjectToGrab)
 {
 	GrabbedObject = ObjectToGrab;
@@ -203,6 +246,7 @@ void UGravityGunComponent::SetGrabbedObject(UPrimitiveComponent* ObjectToGrab)
 
 }
 
+// Restores a released object's physics to sensible defaults: gravity back on, low linear damping (so it moves freely again), and zeroed spin so it doesn't fly off rotating from leftover angular velocity accumulated while held.
 void UGravityGunComponent::ReleaseObjectPhysics(UPrimitiveComponent* Object)
 {
 	if (!Object) return;
