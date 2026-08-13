@@ -90,6 +90,7 @@ void UGravityGunComponent::Pull(UCameraComponent* Camera)
 			GrabbedObject = HitComp;
 			GrabbedObject->SetEnableGravity(false);
 			CurrentState = EGravityGunState::Pulling;
+			PullElapsed = 0.0f;
 
 			if (PullSound)
 			{
@@ -103,6 +104,15 @@ void UGravityGunComponent::Pull(UCameraComponent* Camera)
 		// Safety: object may have been destroyed mid-pull; bail back to Idle.
 		if (!GrabbedObject)
 		{
+			CurrentState = EGravityGunState::Idle;
+			break;
+		}
+
+		PullElapsed += GetWorld()->GetDeltaSeconds();
+		if (PullElapsed >= MaxPullTime)
+		{
+			ReleaseObjectPhysics(GrabbedObject);
+			GrabbedObject = nullptr;
 			CurrentState = EGravityGunState::Idle;
 			break;
 		}
@@ -123,19 +133,61 @@ void UGravityGunComponent::Pull(UCameraComponent* Camera)
 				UGameplayStatics::PlaySoundAtLocation(this, PickupSound, GrabbedObject->GetComponentLocation());
 			}
 		}
-
-		else
-		{
-			// Still reeling in: push the object toward the hold point at a fixed speed. GetSafeNormal() gives pure direction so PullSpeed controls magnitude alone.
-			const FVector PullVelocity = ToHold.GetSafeNormal() * PullSpeed;
-			GrabbedObject->SetPhysicsLinearVelocity(PullVelocity);
-			GrabbedObject->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
-		}
 		break;
 	}
 	case EGravityGunState::Holding:
-
+	{
+		// Already holding, so just maintain the held position.
+		TickPull(Camera);
 		break;
+	}
+
+	}
+}
+
+void UGravityGunComponent::TickPull(UCameraComponent* Camera)
+{
+	if (CurrentState != EGravityGunState::Pulling || !Camera) return;
+
+	// Object may have been destroyed mid-pull.
+	if (!GrabbedObject)
+	{
+		CurrentState = EGravityGunState::Idle;
+		return;
+	}
+
+	// Fail-safe runs every frame now, not just while the button is held.
+	PullElapsed += GetWorld()->GetDeltaSeconds();
+	if (PullElapsed >= MaxPullTime)
+	{
+		ReleaseObjectPhysics(GrabbedObject);
+		GrabbedObject = nullptr;
+		CurrentState = EGravityGunState::Idle;
+		return;
+	}
+
+	const FVector HoldPoint = Camera->GetComponentLocation() + Camera->GetForwardVector() * GrabDistance;
+	const FVector ToHold = HoldPoint - GrabbedObject->GetComponentLocation();
+	const float Distance = ToHold.Size();
+
+	if (Distance <= PullCatchDistance)
+	{
+		SetGrabbedObject(GrabbedObject);
+		CurrentState = EGravityGunState::Holding;
+
+		if (PickupSound && GrabbedObject)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, PickupSound, GrabbedObject->GetComponentLocation());
+		}
+	}
+	else
+	{
+		const FVector Desired = ToHold * PullStiffness;
+		const FVector PullVelocity = Desired.SizeSquared() > FMath::Square(PullSpeed)
+			? Desired.GetSafeNormal() * PullSpeed
+			: Desired;
+		GrabbedObject->SetPhysicsLinearVelocity(PullVelocity);
+		GrabbedObject->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
 	}
 }
 

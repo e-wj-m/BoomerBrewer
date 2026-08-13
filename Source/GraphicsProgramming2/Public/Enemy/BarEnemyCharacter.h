@@ -16,6 +16,11 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	FVector DefaultMeshRelativeLocation;
+	FRotator DefaultMeshRelativeRotation;
+
+	void RestoreMeshTransform();
+
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -38,4 +43,10 @@ protected:
 	// True once KnockDown has been applied; latches the enemy out of "active" behavior.
 	UPROPERTY(BlueprintReadOnly, Category = "Knockback")
 	bool bIsKnockedDown = false;
+
+	FName PelvisBoneName = TEXT("pelvis");
+
+	FTimerHandle RecoveryTimerHandle;
+
+	void Recover();
 };

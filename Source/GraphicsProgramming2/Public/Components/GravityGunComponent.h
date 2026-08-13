@@ -30,6 +30,8 @@ public:
 
 	void Pull(UCameraComponent* Camera);
 
+	void TickPull(UCameraComponent* Camera);
+
 	void Fire(UCameraComponent* Camera);
 
 	void TickHold(UCameraComponent* Camera);
@@ -59,6 +61,13 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Gravity Gun")
 	float PunchImpulse = 50000.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Gravity Gun")
+	float MaxPullTime = 2.0f;
+	float PullElapsed = 0.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Gravity Gun")
+	float PullStiffness = 10.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Audio")
 	class USoundBase* PullSound = nullptr;

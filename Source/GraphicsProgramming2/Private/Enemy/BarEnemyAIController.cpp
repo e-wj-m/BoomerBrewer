@@ -4,6 +4,8 @@
 #include "Enemy/BarEnemyCharacter.h"
 #include "Kismet/GameplayStatics.h"
 
+int32 ABarEnemyAIController::ActiveChaserCount = 0;
+
 ABarEnemyAIController::ABarEnemyAIController()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -41,6 +43,12 @@ void ABarEnemyAIController::OnSeePawn(APawn* PlayerPawn)
 	const float Now = GetWorld()->GetTimeSeconds();
 	const bool bCooldownElapsed = (Now - LastSpottedSoundTime) >= SpottedSoundCooldown;
 
+	// Good for playing Spotted sound, but ONLY if there are enough chase slots available.
+	if (!TryClaimChaseSlot())
+	{
+		return;
+	}
+
 	if (!bWasSeeing && bCooldownElapsed && SpottedPlayerSound)
 	{
 		if (APawn* MyPawn = GetPawn())
@@ -49,6 +57,12 @@ void ABarEnemyAIController::OnSeePawn(APawn* PlayerPawn)
 			LastSpottedSoundTime = Now;
 		}
 	}
+
+	// Good for playing Spotted sound, but can't chase (no slots)
+	//if (!TryClaimChaseSlot())
+	//{
+	//	return;
+	//}
 
 	SetCanSeePlayer(true, PlayerCharacter);
 	RunRetriggerableTimer();
@@ -67,13 +81,37 @@ void ABarEnemyAIController::SetCanSeePlayer(bool bCanSee, UObject* PlayerObject)
 void ABarEnemyAIController::RunRetriggerableTimer()
 {
 	GetWorldTimerManager().ClearTimer(CanSeePlayerTimerHandle);
-	CanSeePlayerTimerDelegate.BindUFunction(this, FName("SetCanSeePlayer"), false, nullptr);
-
-	// CanSeePlayerTimerDelegate.BindUFunction(this, FName("ResetCanSeePlayer"));
-	GetWorldTimerManager().SetTimer(CanSeePlayerTimerHandle, CanSeePlayerTimerDelegate, PawnSensing->SensingInterval * 2.0f, false);
+	GetWorldTimerManager().SetTimer(CanSeePlayerTimerHandle, this, &ABarEnemyAIController::ResetCanSeePlayer, PawnSensing->SensingInterval * 2.0f, false);
 }
 
 void ABarEnemyAIController::ResetCanSeePlayer()
 {
 	SetCanSeePlayer(false, nullptr);
+	ReleaseChaseSlot();
+}
+
+bool ABarEnemyAIController::TryClaimChaseSlot()
+{
+	if (bIsChasing)
+	{
+		return true;
+	}
+
+	if (ActiveChaserCount >= MaxChasers)
+	{
+		return false;
+	}
+
+	++ActiveChaserCount;
+	bIsChasing = true;
+	return true;
+}
+
+void ABarEnemyAIController::ReleaseChaseSlot()
+{
+	if (bIsChasing)
+	{
+		--ActiveChaserCount;
+		bIsChasing = false;
+	}
 }

@@ -75,6 +75,7 @@ void AFPSCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	GravityGunComponent->TickPull(FPSCameraComponent);
 	GravityGunComponent->TickHold(FPSCameraComponent);
 }
 

@@ -17,6 +17,9 @@ class GRAPHICSPROGRAMMING2_API ABarEnemyAIController : public AAIController
 
 public:
 	ABarEnemyAIController();
+
+	void ForceReleaseChaseSlot() { ReleaseChaseSlot(); }
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -33,6 +36,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Audio")
 	float SpottedSoundCooldown = 5.0f;
 
+	UPROPERTY(EditAnywhere, Category = "Chasing")
+	int32 MaxChasers = 3;
+
 	UFUNCTION()
 	void OnSeePawn(APawn* PlayerPawn);
 
@@ -47,6 +53,14 @@ protected:
 	FTimerDelegate CanSeePlayerTimerDelegate;
 
 	void ResetCanSeePlayer();
+
+	bool bIsChasing = false;
+
+	static int32 ActiveChaserCount; 
+
+	bool TryClaimChaseSlot();
+
+	void ReleaseChaseSlot();
 
 	// Timestamp (world seconds) of the last time SpottedPlayerSound played; -BIG so the first sighting always plays.
 	float LastSpottedSoundTime = -1000.0f;
